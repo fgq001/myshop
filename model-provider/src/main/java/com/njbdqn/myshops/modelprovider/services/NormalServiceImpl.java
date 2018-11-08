@@ -151,7 +151,7 @@ public class NormalServiceImpl implements INormalService{
             ObjectMapper om = new ObjectMapper();
             CollectionType listType = om.getTypeFactory().constructCollectionType(ArrayList.class,Map.class);
             try {
-                sps = om.readValues(shops,listType);
+//                sps = om.readValues(shops,listType);
             } catch (Exception e) {
                 e.printStackTrace();
             }
