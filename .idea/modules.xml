@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/model-commons/model-commons.iml" filepath="$PROJECT_DIR$/model-commons/model-commons.iml" />
+      <module fileurl="file://$PROJECT_DIR$/model-consumer/model-consumer.iml" filepath="$PROJECT_DIR$/model-consumer/model-consumer.iml" />
+      <module fileurl="file://$PROJECT_DIR$/model-provider/model-provider.iml" filepath="$PROJECT_DIR$/model-provider/model-provider.iml" />
+      <module fileurl="file://$PROJECT_DIR$/myshops.iml" filepath="$PROJECT_DIR$/myshops.iml" />
+    </modules>
+  </component>
+</project>

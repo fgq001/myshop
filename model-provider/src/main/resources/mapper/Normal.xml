@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC
+        "-//mybatis.org//DTD Mappr 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.njbdqn.myshops.modelprovider.dao.INormalDAO">
+    <resultMap id="shop_img" type="Shopinfos">
+        <result property="shopid" column="shopid"></result>
+        <collection property="imgs" column="shopid" select="findImgByShopid"></collection>
+    </resultMap>
+    <select id="randShop" resultType="Shopinfos">
+        select * from shopinfos where shopid in
+        <foreach collection="list" item="num" separator="," open="(" close=")">
+            #{num}
+        </foreach>
+    </select>
+    <select id="getBean" resultType="Shopinfos">
+        select s.*,ifnull(o.buynum,0) buynum from shops s left join
+        (select shopid,sum(buynum) buynum from orderandshops group by shopid)
+        o on s.shopid=o.shopid inner join ${tablename} j
+        on s.shopid=j.shopid
+        <where>
+            <foreach collection="mymap" index="key" item="value">
+                and ${key} = #{value}
+            </foreach>
+        </where>
+    </select>
+    <select id="findShopByid" resultMap="shop_img" parameterType="int">
+        select * from shops where shopid=#{shopid}
+    </select>
+</mapper>
