@@ -25,30 +25,47 @@ public class NormalServiceImpl implements INormalService{
     private INormalDAO ndao;
     @Autowired
     private StringRedisTemplate redisTemplate;
+
+    /**
+     * 随机获取数据库数据
+     * 1. select * from shops orfer by rand() limit 12
+     * 2. 批量查询
+     * @return
+     */
     @Override
     public List<Shopinfos> randShop() {
-        List nums = new ArrayList();
-        Random rand = new Random();
-        for (int i=0;i<12;i++){
-            nums.add(rand.nextInt(8000));
-        }
-        return ndao.randShop(nums);
+       List nums = new ArrayList();
+       Random rand = new Random();
+       for (int i=0;i<12;i++){
+           nums.add(rand.nextInt(8000));
+       }
+       return ndao.randShop(nums);
     }
 
+    /**
+     * 查询所有分类
+     * @return
+     */
     @Override
     public List<Shopinfos> findTypes() {
         return ndao.findTypes();
     }
 
+    /**
+     * 按照分类编号查询各个分类的特征信息
+     * @param typeid
+     * @return
+     */
     @Override
     public String findFeatByTypeid(int typeid) {
         //查redis 如果里面已有数据则直接返回
+        //1.获得一个简单的redis 健值操作器，进行简单的redis操作
         ValueOperations<String,String> vos = redisTemplate.opsForValue();
         if(vos.get("typefeature"+typeid)!=null){
-            System.out.println("此次走缓存");
+//            System.out.println("此次走缓存");
             return vos.get("typefeature"+typeid);
         }
-        System.out.println("此次走数据库");
+//        System.out.println("此次走数据库");
         //查询对应的表名
         String tabname = ndao.findTypeByTypeid(typeid).getTypeenname();
         //查所有的分组列名
@@ -62,8 +79,8 @@ public class NormalServiceImpl implements INormalService{
             map.put("colname",fs.getFeatureenname());
             fs.setFeas(ndao.findTypeFeature(map));
         }
-        //把数据库找到的数据提出来转为json格式存放在redis中
-        String res = null;
+        //把数据库找到的数据提出来转为json格式存放到redis中
+        String res  = null;
         try {
             res = new ObjectMapper().writeValueAsString(feas);
         } catch (JsonProcessingException e) {
@@ -71,8 +88,15 @@ public class NormalServiceImpl implements INormalService{
         }
         vos.set("typefeature"+typeid,res);
         return res;
+
     }
 
+    /**
+     * 商品分页数据
+     * @param cp
+     * @param map
+     * @return
+     */
     @Override
     public PageInfo<Shopinfos> getBean(int cp, Map map) {
         String tablename = ndao.findTypeByTypeid(Integer.parseInt(map.get("typeid").toString())).getTypeenname();
@@ -81,6 +105,11 @@ public class NormalServiceImpl implements INormalService{
         return new PageInfo<Shopinfos>(pg);
     }
 
+    /**
+     * 查询单个商品的信息跨3表  手工填充数据
+     * @param shopid
+     * @return
+     */
     @Override
     public Shopinfos findShopById(int shopid) {
         String tablename = ndao.findTypeByTypeid(ndao.getTypeidByShopid(shopid)).getTypeenname();
@@ -91,6 +120,11 @@ public class NormalServiceImpl implements INormalService{
         return sp;
     }
 
+    /**
+     * 用户登录  同时获取token信息
+     * @param user
+     * @return
+     */
     @Override
     public Userinfos login(Userinfos user) {
         Userinfos us = ndao.login(user);
@@ -111,6 +145,11 @@ public class NormalServiceImpl implements INormalService{
         return us;
     }
 
+    /**
+     * 用户注册信息 同时注入两张表  主键没有自增 使用意向排他锁  锁表
+     * @param user
+     * @param details
+     */
     @Override
     public void registist(Userinfos user, UserDetails details) {
         //锁表
@@ -136,34 +175,57 @@ public class NormalServiceImpl implements INormalService{
      */
     @Override
     public void buyShop(Map map) {
+        String keyname = map.get("userid")+"_"+map.get("token");
+        ObjectMapper om  = new ObjectMapper();
         //判断redis服务器中是否有购物车的存在
-        String shops = redisTemplate.opsForValue().get(map.get("userid")+"+"+map.get("token"));
-        List<Map<Integer,Integer>> sps = new ArrayList<Map<Integer, Integer>>();
+        String shops = redisTemplate.opsForValue().get(keyname);
+        List<Map> sps = new ArrayList<Map>();
         if (shops == null){
             //说明用户没有购物  本次购物为首次购物
 //            Shopinfos sp = ndao.findShopById(Integer.parseInt(map.get("shopid").toString()));
 //            sp.setBuynum(Integer.parseInt(map.get("buynum").toString()));
-            Map<Integer,Integer> sp = new HashMap<Integer, Integer>();
-            sp.put(Integer.parseInt(map.get("shopid").toString()),Integer.parseInt(map.get("buynum").toString()));
+            Map sp = new HashMap();
+            sp.put(map.get("shopid").toString(),map.get("buynum").toString());
             sps.add(sp);
         }else{
             //用户已经有购物车
-            ObjectMapper om = new ObjectMapper();
-            CollectionType listType = om.getTypeFactory().constructCollectionType(ArrayList.class,Map.class);
+            CollectionType listType = om.getTypeFactory()
+                    .constructCollectionType(ArrayList.class,Map.class);
             try {
-//                sps = om.readValues(shops,listType);
+                sps = om.readValue(shops,listType);
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            for (Map<Integer,Integer> mp:sps){
-                int spid = Integer.parseInt(map.get("shopid").toString());
+            //判断sps中是否已有该商品 List<Map<1,10>,Map<2,5>,Map<3,6>> map(2,2)
+            boolean isHave = false;
+            for (Map mp:sps){
+                String spid = map.get("shopid").toString();
                 if (mp.containsKey(spid)){
-                    mp.put(spid,mp.get(spid)+Integer.parseInt(map.get("buynum").toString()));
+                    mp.put(spid,mp.get(spid).toString()
+                            +map.get("buynum").toString());
+                    isHave = true;
+                    break;
                 }
             }
+            if (!isHave){
+                Map newmp = new HashMap();
+                newmp.put(map.get("shopid"),map.get("buynum"));
+                sps.add(newmp);
+            }
+        }
+        //把购物车存放到缓存中
+        try {
+            redisTemplate.opsForValue().set(keyname,om.writeValueAsString(sps));
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
         }
     }
 
+    /**
+     * 获取购物车中商品信息
+     * @param map
+     * @return
+     */
     @Override
     public List<Shopinfos> findCartShop(Map map) {
         return null;
@@ -184,6 +246,10 @@ public class NormalServiceImpl implements INormalService{
         return UUID.randomUUID().toString().replaceAll("-","");
     }
 
+    /**
+     * 根据购物车信息生产对应的订单信息
+     * @param order
+     */
     @Override
     public void genOrder(Orderinfos order) {
 

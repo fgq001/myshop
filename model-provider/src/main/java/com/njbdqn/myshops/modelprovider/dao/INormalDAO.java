@@ -11,19 +11,16 @@ import java.util.Map;
 public interface INormalDAO {
 
     public List<Shopinfos> randShop(List params);
-
     //查寻商品分类
     @Select("select * from shoptypes")
     public List<Shopinfos> findTypes();
+
     //根据typeid确定哪种商品
     @Select("select * from shoptypes where typeid=#{typeid}")
     public Shopinfos findTypeByTypeid(int typeid);
     //根据typeid值查寻具体品牌...
-//    @Select("select * from shopfeature where typeid=#{typeid} and featureenname not like '%id'")
     @Select("select * from shopfeature where typeid=#{typeid} and featureenname not like '%id'")
     public List<Features> findTypeFeatureByTypeid(int typeid);
-
-
     @Select("select ${colname} from ${tablename} group by ${colname}")
     public List<String> findTypeFeature(Map info);
 
