@@ -10,6 +10,8 @@ import java.util.Map;
 @Mapper
 public interface INormalDAO {
 
+    //dsafdsafdsafhkjlh
+
     public List<Shopinfos> randShop(List params);
     //查寻商品分类
     @Select("select * from shoptypes")

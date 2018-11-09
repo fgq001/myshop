@@ -8,9 +8,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @MapperScan("com.njbdqn.myshops.modelprovider.dao")
 public class ModelProviderApplication {
 
-
-
-
 	public static void main(String[] args) {
 		SpringApplication.run(ModelProviderApplication.class, args);
 	}
